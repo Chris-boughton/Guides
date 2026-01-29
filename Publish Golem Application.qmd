@@ -1,0 +1,92 @@
+---
+title: "Publish Golem Application"
+author: "Chris Boughton"
+format: html
+editor: visual
+engine: knitr
+---
+
+## Preparation for Deployment
+
+Before deploying the golem application, it is pivotal that some prerequisite checks are completed to ensure that successful deployment can be achieved. At a minimum, checks that should be undertaken are:
+
+1.  Deployment is from the 'pulled' version of master/main branch, which contains all approved and reviewed code. Within the terminal, type `git checkout master` (or replace `master` with `main` if that nomenclature is appropriate) and then `git pull` to ensure the branch is up to date and ready for deployment.
+
+2.  At the root of the application, in the console, type `devtools::check()`. This will provide a holistic check of the package, using all known best practices. This function is essentially a R CMD Check, which is a check that is pre-built into our golem app-GitHub version control pathway from the previous help guide (pull and merge requests with master/main initialise a R CMD Check). Therefore whilst this check should not fail, it is important to ensure no ERRORS or WARNINGS occur, and ideally as no/minimal notes appear.
+
+3.  The timing of deployment is appropriate as the user-base must be considered. The newly deployed version should be the version that users interact with, and so it is important that deployment will not interfere with their workloads unless critical errors have been identified. For example feature updates should be completed during off-peak hours. Deployment should be communicated within the team prior to action, allowing for discussion of an appropriate deployment strategy to be reviewed.
+
+The prerequisites above are not an exhaustive list of checks that should be undertaken when deploying golem applications; many others can be useful and beneficial depending on the set-up/configuration present. For example dockerised application deployment may want to check that system libraries are installed when the application is deployed, but this may not be a necessity on Posit Connect deployment.
+
+## Local Install
+
+Once content that the prerequisites are met, the next stage should be to ensure that the golem application can be built and run locally. This is pivotal as it will help early identification of issues for deployment should they occur, isolating issues with the 'build' of the application from issues arising from the 'deployment' of the application. To complete this, from the root directory of the application type:
+
+```{r}
+#| eval: false
+remotes::install_local()
+```
+
+Or if not at the root of the application then type:
+
+```{r}
+#| eval: false
+remotes::install_local("full/path/to/golem/application")
+```
+
+This will then begin a build of the application into a package that can be called. Once this process has completed, restart the R session and then load and run the application using:
+
+```{r}
+#| eval: false
+library("golem_application_name")
+run_app()
+```
+
+The golem application should run and work as intended. Assuming there are no issues with the functionality of the application, the next stage is final deployment.
+
+## Deployment
+
+This can be achieved in a number of different ways dependent on the methodology preferred and the platform that the application will be hosted on. In the infrastructure of Posit, specifically deploying to Connect, this can be achieved through development of an `renv` bundle that is then deployed directly to the server. When deploying for the **first** time, it is critical that the code:
+
+```{r}
+#| eval: false
+renv::init()
+```
+
+Which will set up the infrastructure required for all future deployments, such as project library, a lock file etc.
+
+Following this, or if you are redeploying an application that already has the appropriate `renv` associated documents and folder, the next stage is to take the current snapshot of all libraries, dependencies and their states for the application. This can be achieved through:
+
+```{r}
+#| eval: false
+renv::snapshot()
+```
+
+This essentially takes a recording of the project library, which means all dependencies in the library path (`DESCRIPTION` file) and overwrites the lockfile that was generated. This ensures that the current state of the application is captured; which is hugely beneficial for version control and checking the status of previous deployments if needed.
+
+The snapshot can then be deployed to the connect server through a two stage process; adding the appropriate server and then deploying to that server. The server can be added using the `rsconnect` package, where the code to complete this is as follows:
+
+```{r}
+#| eval: false
+rsconnect::addServer("fully-qualified-server-name", # URL e.g. https://pr-niao-rsct01.nigov.net
+                     "server-name")                 # A name for that server, e.g. Connect
+rsconnect::connectUser(server = "server-name")      # The SAME name as above
+```
+
+Once added this can then be called as an argument in the subsequent deployment of this application. You can check successful addition of the servers through the code:
+
+```{r}
+#| eval: false
+rsconnect::accounts()
+```
+
+To check that it is correctly added and to see the server name to add below. If not already, navigate to the root directory of the application and in the console run the code:
+
+```{r}
+#| eval: false
+rsconnect::deployApp(appDir = getwd(),           # From the current WD for the app
+                     appName = "golem_app_name", # The name of the application
+                     server = "server-name")     # The SAME name as created above
+```
+
+Once you have deployed the application, if it is a new application then there may be a requirement to add the secrets/environmental variables where appropriate. In Posit for example, these environmental variables are stored on the 'Vars' tab and should be input there.
