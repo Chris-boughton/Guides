@@ -1,0 +1,95 @@
+---
+title: "Linting Help Guide"
+author: "Chris Boughton"
+format: html
+editor: visual
+engine: knitr
+---
+
+## What is Linting
+
+Linting is the essentially the process of standardising the appearance and format of code, such to flag errors that may impact the code. This is important as it reduces the likelihood of errors being introduced, prevents unintentional format changes and ensures consistency across a team of individuals. Critically, this can improve workflows as every team member follows the same set of instructions/stylistic choices, meaning when work is rotated between staff, the structure and formatting is consistent even if the subject matter is different. Ultimately, the end result is improved the efficiency of the team when transitioning to new code they may not have seen before, as the expectation of layout is similar.
+
+## How to Lint?
+
+In R, one simplified method of linting is to use the 'lintr' package. This package contains a variety of functions, but two that I suggest should be higher priority are:
+
+```{r}
+#| eval: false
+lintr::lint("")
+lintr::lint_package("")
+```
+
+These two functions are particularly important as they allow the linting of a (1) singular file or (2) a full package. The function `lintr::lint()` can be populated with the argument related to the specific file that you intend to lint, such as:
+
+```{r}
+#| eval: false
+lintr::lint("my_file.R")
+```
+
+The function `lintr::lint_package()` however is useful when linting a full package, including all files related to a `golem` application. If you run:
+
+```{r}
+#| eval: false
+lintr::lint_package()
+```
+
+from the working directory of your `golem` application, it will provide you with a file by file list of all linting errors that require amending.
+
+## Typical Linting Errors
+
+There are a variety of common errors that linting will identify. A few of the most frequent issues I will document here:
+
+##### Commented code
+
+Remove all commented code from the scripts as accidental un-commenting can have adverse impacts on the script/app.
+
+##### Trailing whitespace
+
+Highlight and remove all whitespace that exists after the line of code as this can impact formatting or even alter function in some settings (e.g. YAML indentation).
+
+##### Snakecase variables
+
+All variable names should be snakecase to ensure that variables are consistently named within a script/app and therefore prevent errors associated with capitalisation.
+
+##### Line length
+
+The length of the code line exceeds the accepted length and so should be separated out. This helps with readability and ensures code can be followed easily.
+
+## Reconfiguration
+
+One potential method to overcome a large portion of linting errors efficiently is to utilise a combinatiorial approach to read and write the file again. The `readLines()` function from base R can be used to generate a full character vector of your script. This can then be fed into the `writeLines()` function in base R, with aid from the `style_text()` function from the `styler` package to write out the file in a linted format. An example of this process would be:
+
+```{r}
+#| eval: false
+original_file <- readLines("file_that_needs_linting.R")
+writeLines(styler::style_text(original_file), con = "file_that_needs_linting.R")
+```
+
+The above code will take the original file that requires linting and **overwrite** the original file with the new linted version of that file. Extreme care must therefore be taken when using this approach, particularly if attempting to lint multiple files using this method, that the correct file is overwritten.
+
+## Golem app configuration
+
+When constructing a golem application, it is possible to customise the options associated with lintr such to fit the outcomes envisioned. To complete this, a `.txt` file can be created entitled `.lintr` that will contain the customised defaults for linting. For example, within that particular document, the contents could include:
+
+```{r}
+#| eval: false
+# Changing the default/accepted arguments within the lintr functions
+linters: linters_with_defaults(
+  # Change the accepted length of code lines and permit text to extend beyond accepted
+  line_length_linter = line_length_linter(150L,
+                                          ignore_string_bodies = TRUE),
+  # Change pipe standard fromm native to magrittr
+  pipe_consistency_linter("%>%"),
+  # Change the accepted length of a linting argument (object length)
+  object_length_linter = object_length_linter(length = 40L),
+  # To turn off a linting component such as whether return function from module
+  return_linter = NULL)
+# Listing out files to be excluded from linting process (useful for golem apps)
+exclusions: list("R/run_app.R",
+                 "man/run_app.Rd")
+# Encoded UTF-8 which supports most characters that will be used within R
+encoding: "UTF-8"
+```
+
+Above are examples of a number of defaults for lintr that can be changed along with the method of which to change them accordingly. Further arguments can be obtained from the vignettes associated with lintr.

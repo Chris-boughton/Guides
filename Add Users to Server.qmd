@@ -1,0 +1,58 @@
+---
+title: "Add Users to Server"
+author: "Chris Boughton"
+format: html
+editor: visual
+---
+
+## SSH Connection
+
+In order to start the process of adding a new user to the linux server (RHEL 9), you first must connect to the server. Typically this is undertaken through secure shell (SSH), which is essentially a method of interacting with another machine/server outside of local. The terminal is a 'workstation' where you can write commands and interact, and the shell underlies this and identifies how to interpret the commands that you have written. Locally, this is done without any additional requirements but when attempting to write commands on a server that is not local, SSH works by 'sending' the inputs on your terminal to the 'shell' of the server you connected to. Connection through SSH can be completed in a variety of ways but two common methods would be through the computer terminal or PuTTY.
+
+###### Terminal
+
+If you are using the terminal, connection can be established through:
+
+```         
+ssh username@ip_address_of_server
+```
+
+Followed by entering the password of that username when prompted.
+
+###### PuTTY
+
+If you are using PuTTY, connection can be established through:
+
+![[PuTTY start-up UI]{style=".caption{    text-align: center; }"}](images/clipboard-4161191310.png){style="text-align: center" width="299"}
+
+Entering the IP address of the server in the host name section and then entering both the username and password when prompted.
+
+## User Addition
+
+Once connection has been established, users can be added through the following Linux commands:
+
+```         
+sudo useradd <new_username>
+```
+
+And then entering your password associated with your account when prompted.
+
+You then can add a password to that user account as follows:
+
+```         
+sudo passwd <new_username>
+```
+
+Entering the new password for that account twice as prompted. As you would have previously entered your own account password to approve the user addition, you will likely not be required to do that again for the password; assuming they are completed in short succession.
+
+## User Grouping
+
+The user that has now been added is a functional base user on the server, with both the username and password specified above. The account will also need addition to specific user groups in order to gain the permissions associated with those groups. A common one that is used for our Posit Licenses is the usergroup `rstudio-share`. Addition to this usergroup can be completed through the following Linux code:
+
+```         
+sudo usermod -a -G rstudio-share <new_username>
+```
+
+This modifies the user (`usermod`), by appending the user (`-a`) to the group share (`-G`) that is called '`rstudio-share`' for the specified user `<new_username>`.
+
+Critically, this process must be repeated for users across the different servers that they require access to.
