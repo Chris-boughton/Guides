@@ -1,0 +1,152 @@
+---
+title: "Developing an Application in the Golem Ecosystem"
+author: "Chris Boughton"
+format: html
+editor: visual
+engine: knitr
+---
+
+## Modularisation
+
+### Coding modules
+
+`Golem` applications separate out the UI and Server functions of the application and so each should be developed such to ensure that they relate directly to one another despite existing in different scripts. Further to this, modularisation is an effective method of further isolating pockets of code that relate to specific areas, such that the overarching scripts do not become cumbersome and difficult to navigate. This helps with aspects such as bug fixing, readability and [other benefits.](https://best-practice-and-impact.github.io/qa-of-code-guidance/modular_code.html) Within `golem`, modularisation can be achieved through a file that is created during the inception of the `golem` application; `02_dev.R`. This particular file contains a variety of functions and options that allow for the creation of files for the customisation and development of the app. The code line:
+
+```{r}
+#| eval: false
+golem::add_module(name = "module1", with_test = TRUE)
+```
+
+can be used to add a module in a standardised template and naming convention to the `R` folder of the golem application. Within this module, code can be written using the same standard modular coding conventions associated with R, such as independent name spacing:
+
+```{r}
+#| eval: false
+# In the UI
+ns <- NS(id) # Creating independent namespace
+
+shiny::radioButtons(ns("input_id"),              # Applying that namespace to input ID
+                    label = "Do you like dogs?", # Random label
+                    choices = c(                 # Choice argument
+                      "No",                      # Option 1
+                      "Yes"                      # Option 2
+                      ),                         # End of choices
+                    selected = "Yes",            # Preselected input
+                    inline = TRUE)               # Style of buttons to be horizontal
+
+# In the server
+ns <- session$ns # Adding the independent namespace to the server
+```
+
+### Helper function modules
+
+Outside of standard modules that contain UI and server elements, the `02_dev.R` file also contains functions that will enable the skeleton of many of file types; such as functions, css, javascript files and many more. These can be utilised to further breakdown the different elements that make up the golem application, such as repeated functions, styling and custom operators. For example, a function that is used multiple times within an application should be pulled into its own function module, through the line:
+
+```{r}
+#| eval: false
+golem::add_fct("function1", with_test = FALSE)
+```
+
+from the `02_dev.R` file. Helper function files will be contained within the `R` folder of the golem app, whilst external resources are instead stored within the `inst/app/www` file path of the golem application. For example, custom css styling for the application can be pulled out into its own script through the line:
+
+```{r}
+#| eval: false
+golem::add_css_file("custom")
+```
+
+Where the file can contain all css styling required such as:
+
+```{css}
+/* main sidebar */
+.skin-blue .main-sidebar {
+  background-color: #10273B;
+  font-size: 15px
+}
+
+/* other links in the sidebarmenu when hovered */
+.skin-blue .main-sidebar .sidebar .sidebar-menu a:hover{
+  background-color: #FED16D;
+  color: #10273B
+  font-size: 16px;
+}
+
+/* active selected tab in the sidebarmenu */
+.skin-blue .main-sidebar .sidebar .sidebar-menu .active a{
+  background-color: #FED16D;
+  color: #10273B;
+  font-size: 16px
+}
+
+/* adding in formatting for da_contact output */
+.contact {
+  position: absolute;
+  width: 100%;
+  padding-top: 10px;
+  background: #10273B;
+  color: white;
+  z-index: 1000
+}
+```
+
+## GitHub Actions (Continuous Integration/CI)
+
+Development processes should be automated where possible to ensure that the code maintains function and errors are not introduced. One method of ensuring this are through a series of checks and tests that will ensure compliance, accuracy, completeness and form of code. One of the ways that this can be completed is through GitHub Actions using the file creation line in `02_dev.R`:
+
+```{r}
+#| eval: false
+usethis::use_github_action()
+```
+
+For example, using this an `R CMD Check` can be developed as a `.yaml` file, such that when a pull request is made to `main`/`master` or a branch is merged with either, the R CMD Check is enacted and ensures that the new version passes. An example of this can be seen below:
+
+```{yaml}
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+name: R-CMD-check.yaml
+
+permissions: read-all
+
+jobs:
+  R-CMD-check:
+    runs-on: ${{ matrix.config.os }}
+
+    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {os: windows-latest, r: 'release'}
+          - {os: ubuntu-latest,   r: 'devel', http-user-agent: 'release'}
+          - {os: ubuntu-latest,   r: 'release'}
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.config.r }}
+          http-user-agent: ${{ matrix.config.http-user-agent }}
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          upload-snapshots: true
+          build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
+          
+```
+
+This will perform a `R CMD Check` on pull or merge from `master`/`main` branch, for Windows latest release as well as a few Ubuntu versions. This ensures cross-compatibility of the application dependent on deployment location.
