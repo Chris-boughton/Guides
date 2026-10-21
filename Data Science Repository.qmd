@@ -1,0 +1,625 @@
+---
+title: "Repository of Data Science Learning"
+author: "Chris Boughton"
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    html-math-method: katex
+    theme: styles.scss
+---
+
+This documents contains a wide array of learning that may be useful to reflect upon by myself or team members when attempting to complete DS tasks or workflows. This is not an exhaustive list of my knowledge of the subject, but more some key themes or learning that may support workflows.
+
+# Fundamentals
+
+# R
+
+## Linting
+
+Linting is the essentially the process of standardising the appearance and format of code, such to flag errors that may impact the code. This is important as it reduces the likelihood of errors being introduced, prevents unintentional format changes and ensures consistency across a team of individuals. Critically, this can improve workflows as every team member follows the same set of instructions/stylistic choices, meaning when work is rotated between staff, the structure and formatting is consistent even if the subject matter is different. Ultimately, the end result is improved the efficiency of the team when transitioning to new code they may not have seen before, as the expectation of layout is similar.
+
+### How to Lint?
+
+In R, one simplified method of linting is to use the 'lintr' package. This package contains a variety of functions, but two that I suggest should be higher priority are:
+
+```{r}
+#| eval: false
+lintr::lint("")
+lintr::lint_package("")
+```
+
+These two functions are particularly important as they allow the linting of a (1) singular file or (2) a full package. The function `lintr::lint()` can be populated with the argument related to the specific file that you intend to lint, such as:
+
+```{r}
+#| eval: false
+lintr::lint("my_file.R")
+```
+
+The function `lintr::lint_package()` however is useful when linting a full package, including all files related to a `golem` application. If you run:
+
+```{r}
+#| eval: false
+lintr::lint_package()
+```
+
+from the working directory of your `golem` application, it will provide you with a file by file list of all linting errors that require amending.
+
+### Typical Linting Errors
+
+There are a variety of common errors that linting will identify. A few of the most frequent issues I will document here:
+
+#### Commented code
+
+Remove all commented code from the scripts as accidental un-commenting can have adverse impacts on the script/app.
+
+#### Trailing whitespace
+
+Highlight and remove all whitespace that exists after the line of code as this can impact formatting or even alter function in some settings (e.g. YAML indentation).
+
+#### Snakecase variables
+
+All variable names should be snakecase to ensure that variables are consistently named within a script/app and therefore prevent errors associated with capitalisation.
+
+#### Line length
+
+The length of the code line exceeds the accepted length and so should be separated out. This helps with readability and ensures code can be followed easily.
+
+### Reconfiguration
+
+One potential method to overcome a large portion of linting errors efficiently is to utilise a combinatiorial approach to read and write the file again. The `readLines()` function from base R can be used to generate a full character vector of your script. This can then be fed into the `writeLines()` function in base R, with aid from the `style_text()` function from the `styler` package to write out the file in a linted format. An example of this process would be:
+
+```{r}
+#| eval: false
+original_file <- readLines("file_that_needs_linting.R")
+writeLines(styler::style_text(original_file), con = "file_that_needs_linting.R")
+```
+
+The above code will take the original file that requires linting and **overwrite** the original file with the new linted version of that file. Extreme care must therefore be taken when using this approach, particularly if attempting to lint multiple files using this method, that the correct file is overwritten.
+
+## Golem Modularisation
+
+### Setting up Golem
+
+A `golem` application is an R package, and therefore introduces many of the distinct benefits that R packages hold over traditional R Shiny applications. One **major** benefit is the structural integrity that is developed through `golem` replicating a package arhcitecture. To initiate a golem application, the following code is required:
+
+```{r}
+#| eval: false
+golem::create_golem("app_name")
+```
+
+This will initially create the golem application with the required starting structure and the associated name. The structure that this develops is:
+
+```{r}
+#| eval: false
+app_name
+├── DESCRIPTION
+├── NAMESPACE
+├── R
+│   ├── app_config.R
+│   ├── app_server.R
+│   ├── app_ui.R
+│   └── run_app.R
+├── dev
+│   ├── 01_start.R
+│   ├── 02_dev.R
+│   ├── 03_deploy.R
+│   └── run_dev.R
+├── inst
+│   ├── app
+│   │   └── www
+│   │       └── favicon.ico
+│   └── golem-config.yml
+└── man
+    └── run_app.Rd
+```
+
+This is hugely important as there is a specific order to how the application is set-up, strucutres that must be adhered to and files that must never be edited. I will cover this below.
+
+### Structure of Golem
+
+#### Overall Files
+
+-   ***DESCRIPTION***: Metadata for the application including licensing, authorship, encoding, dependencies, versioning etc. This becomes pre-populated via the dev/01_start.R when the app is initially developed and then is populated afterwards using various wrappers and functions, such as from the usethis and golem packages.
+-   ***NAMESPACE*** : Interaction definitions for the backend configuration of the application, such as what versions, functions and packages for the app to work. These are defined and produced when we use golem::document_and_reload() through scanning the *roxygen* tags in the app, but this should never be directly edited.
+
+#### /R
+
+This folder contains all of the core scripts that make up the application. Anytime a new script is required that relates to a core functionality of the app, such as a new module, this is added into this section here. Further details of this process can be found in the 'Developing an Application in the Golem Ecosystem' user guide. This initiates with 4 files:
+
+-   ***app_config.R***: This contains internal mechanics for golem and so is largely left alone. Typically in here I would add global options such as scipen and na_string formatting.
+-   ***run_app.R*** : This file allows you to run the application with preset parameters, so that you can load the data required for the application from the start. Typically I would use run_dev.R instead as this documents and reloads the application in its entirety from its natural state.
+-   ***app_server.R***: This is the standard server side counterpart for the application; if we do not have modules. Therefore any server side functionality belongs here.
+-   ***app_ui.R*** : This is the standard UI side counterpart for the application; if we do not have modules. Therefore any YU side functionality belongs here. Critically however, at the bottom of this file you can place a `golem_add_external_resources()` function, that contains links/references to the various css, js, scss etc. files that you may want to use to stylise the applicaiton. E.g.
+
+```{r}
+#| eval: false
+golem_add_external_resources <- function() {
+  add_resource_path(
+    "www",
+    app_sys("app/www")
+  )
+  tags$head(
+    favicon(),
+    bundle_resources(
+      path = app_sys("app/www"),
+      app_title = "Adapt"
+    ),
+    tags$link(
+      rel = "stylesheet",
+      type = "text/css",
+      href = paste0("www/custom.css?v=", as.numeric(Sys.time()))
+    ),
+    tags$script(src = "www/toggle_panel.js")
+  )
+}
+```
+
+#### /dev
+
+This folder contains the different scripts used in the lifecycle of the application as well as helper functions within each to support the app construction. Most changes to the application that are required, e.g. module creation, function helper creation etc. should all be undertaken in the relevant scripts here.
+
+-   ***01_start.R*** : The script that should be run upon project initiation to document the metadata surrounding the application.
+-   ***02_dev.R*** : The script that contains the various functions and helpers associated with building out the application and so should be used throughout the app design and develop phase.
+-   ***03_deploy.R***: The script that contains information and processes to deploy the built application to a variety of hosting platforms. Whilst this can be used, I use a different method of deployment that can be found in the 'Publish Golem Application' user guide.
+-   ***run_dev.R*** : This script documents, reloads and runs the application based on the current contained code.
+
+#### /inst
+
+This folder contains a variety of scripts that are used/made available to the application during its running. For example in the `inst/app/www` folder, this is where css styling, js events etc. can all be created to add layers to the application. This is also the location for items such as templates that are to be pulled and populated by an application. For example the file path `inst/rmarkdown/` can be used to store the Rmarkdown templates required for documentation of sampling, JRA etc. Further information about this can be found in the 'Developing an Application in the Golem Ecosystem' user guide.
+
+#### /man
+
+This folder is never edited but contains the files and documentation associated with the application when it is run. Most of the documents added in here are by roxygen and so automatically generate/update, so often do not require manual editing.
+
+### Modules
+
+`Golem` applications separate out the UI and Server functions of the application and so each should be developed such to ensure that they relate directly to one another despite existing in different scripts. Further to this, modularisation is an effective method of further isolating pockets of code that relate to specific areas, such that the overarching scripts do not become cumbersome and difficult to navigate. This helps with aspects such as bug fixing, readability and [other benefits.](https://best-practice-and-impact.github.io/qa-of-code-guidance/modular_code.html) Within `golem`, modularisation can be achieved through a file that is created during the inception of the `golem` application; `02_dev.R`. This particular file contains a variety of functions and options that allow for the creation of files for the customisation and development of the app. The code line:
+
+```{r}
+#| eval: false
+golem::add_module(name = "module1", with_test = TRUE)
+```
+
+can be used to add a module in a standardised template and naming convention to the `R` folder of the golem application. Within this module, code can be written using the same standard modular coding conventions associated with R, such as independent name spacing:
+
+```{r}
+#| eval: false
+# In the UI
+ns <- NS(id) # Creating independent namespace
+
+shiny::radioButtons(ns("input_id"),              # Applying that namespace to input ID
+                    label = "Do you like dogs?", # Random label
+                    choices = c(                 # Choice argument
+                      "No",                      # Option 1
+                      "Yes"                      # Option 2
+                      ),                         # End of choices
+                    selected = "Yes",            # Preselected input
+                    inline = TRUE)               # Style of buttons to be horizontal
+
+# In the server
+ns <- session$ns # Adding the independent namespace to the server
+```
+
+### Helper functions
+
+Outside of standard modules that contain UI and server elements, the `02_dev.R` file also contains functions that will enable the skeleton of many of file types; such as functions, css, javascript files and many more. These can be utilised to further breakdown the different elements that make up the golem application, such as repeated functions, styling and custom operators. For example, a function that is used multiple times within an application should be pulled into its own function module, through the line:
+
+```{r}
+#| eval: false
+golem::add_fct("function1", with_test = FALSE)
+```
+
+from the `02_dev.R` file. Helper function files will be contained within the `R` folder of the golem app, whilst external resources are instead stored within the `inst/app/www` file path of the golem application. For example, custom css styling for the application can be pulled out into its own script through the line:
+
+```{r}
+#| eval: false
+golem::add_css_file("custom")
+```
+
+Where the file can contain all css styling required such as:
+
+```{css}
+/* main sidebar */
+.skin-blue .main-sidebar {
+  background-color: #10273B;
+  font-size: 15px
+}
+
+/* other links in the sidebarmenu when hovered */
+.skin-blue .main-sidebar .sidebar .sidebar-menu a:hover{
+  background-color: #FED16D;
+  color: #10273B
+  font-size: 16px;
+}
+
+/* active selected tab in the sidebarmenu */
+.skin-blue .main-sidebar .sidebar .sidebar-menu .active a{
+  background-color: #FED16D;
+  color: #10273B;
+  font-size: 16px
+}
+
+/* adding in formatting for da_contact output */
+.contact {
+  position: absolute;
+  width: 100%;
+  padding-top: 10px;
+  background: #10273B;
+  color: white;
+  z-index: 1000
+}
+```
+
+### Linting configuration 
+
+When constructing a golem application, it is possible to customise the options associated with lintr such to fit the outcomes envisioned. To complete this, a `.txt` file can be created entitled `.lintr` that will contain the customised defaults for linting. For example, within that particular document, the contents could include:
+
+```{r}
+#| eval: false
+# Changing the default/accepted arguments within the lintr functions
+linters: linters_with_defaults(
+  # Change the accepted length of code lines and permit text to extend beyond accepted
+  line_length_linter = line_length_linter(150L,
+                                          ignore_string_bodies = TRUE),
+  # Change pipe standard fromm native to magrittr
+  pipe_consistency_linter("%>%"),
+  # Change the accepted length of a linting argument (object length)
+  object_length_linter = object_length_linter(length = 40L),
+  # To turn off a linting component such as whether return function from module
+  return_linter = NULL)
+# Listing out files to be excluded from linting process (useful for golem apps)
+exclusions: list("R/run_app.R",
+                 "man/run_app.Rd")
+# Encoded UTF-8 which supports most characters that will be used within R
+encoding: "UTF-8"
+```
+
+Above are examples of a number of defaults for lintr that can be changed along with the method of which to change them accordingly. Further arguments can be obtained from the vignettes associated with lintr.
+
+### Preparation for Deployment
+
+Before deploying the golem application, it is pivotal that some prerequisite checks are completed to ensure that successful deployment can be achieved. At a minimum, checks that should be undertaken are:
+
+1.  Deployment is from the 'pulled' version of master/main branch, which contains all approved and reviewed code. Within the terminal, type `git checkout master` (or replace `master` with `main` if that nomenclature is appropriate) and then `git pull` to ensure the branch is up to date and ready for deployment.
+
+2.  At the root of the application, in the console, type `devtools::check()`. This will provide a holistic check of the package, using all known best practices. This function is essentially a R CMD Check, which is a check that is pre-built into our golem app-GitHub version control pathway from the previous help guide (pull and merge requests with master/main initialise a R CMD Check). Therefore whilst this check should not fail, it is important to ensure no ERRORS or WARNINGS occur, and ideally as no/minimal notes appear.
+
+3.  The timing of deployment is appropriate as the user-base must be considered. The newly deployed version should be the version that users interact with, and so it is important that deployment will not interfere with their workloads unless critical errors have been identified. For example feature updates should be completed during off-peak hours. Deployment should be communicated within the team prior to action, allowing for discussion of an appropriate deployment strategy to be reviewed.
+
+The prerequisites above are not an exhaustive list of checks that should be undertaken when deploying golem applications; many others can be useful and beneficial depending on the set-up/configuration present. For example dockerised application deployment may want to check that system libraries are installed when the application is deployed, but this may not be a necessity on Posit Connect deployment.
+
+### Local Install
+
+Once content that the prerequisites are met, the next stage should be to ensure that the golem application can be built and run locally. This is pivotal as it will help early identification of issues for deployment should they occur, isolating issues with the 'build' of the application from issues arising from the 'deployment' of the application. To complete this, from the root directory of the application type:
+
+```{r}
+#| eval: false
+remotes::install_local()
+```
+
+Or if not at the root of the application then type:
+
+```{r}
+#| eval: false
+remotes::install_local("full/path/to/golem/application")
+```
+
+This will then begin a build of the application into a package that can be called. Once this process has completed, restart the R session and then load and run the application using:
+
+```{r}
+#| eval: false
+library("golem_application_name")
+run_app()
+```
+
+The golem application should run and work as intended. Assuming there are no issues with the functionality of the application, the next stage is final deployment.
+
+### Deployment
+
+This can be achieved in a number of different ways dependent on the methodology preferred and the platform that the application will be hosted on. In the infrastructure of Posit, specifically deploying to Connect, this can be achieved through development of an `renv` bundle that is then deployed directly to the server. When deploying for the **first** time, it is critical that the code:
+
+```{r}
+#| eval: false
+renv::init()
+```
+
+Which will set up the infrastructure required for all future deployments, such as project library, a lock file etc.
+
+Following this, or if you are redeploying an application that already has the appropriate `renv` associated documents and folder, the next stage is to take the current snapshot of all libraries, dependencies and their states for the application. This can be achieved through:
+
+```{r}
+#| eval: false
+renv::snapshot()
+```
+
+This essentially takes a recording of the project library, which means all dependencies in the library path (`DESCRIPTION` file) and overwrites the lockfile that was generated. This ensures that the current state of the application is captured; which is hugely beneficial for version control and checking the status of previous deployments if needed.
+
+The snapshot can then be deployed to the connect server through a two stage process; adding the appropriate server and then deploying to that server. The server can be added using the `rsconnect` package, where the code to complete this is as follows:
+
+```{r}
+#| eval: false
+rsconnect::addServer("fully-qualified-server-name", # URL e.g. https://pr-niao-rsct01.nigov.net
+                     "server-name")                 # A name for that server, e.g. Connect
+rsconnect::connectUser(server = "server-name")      # The SAME name as above
+```
+
+Once added this can then be called as an argument in the subsequent deployment of this application. You can check successful addition of the servers through the code:
+
+```{r}
+#| eval: false
+rsconnect::accounts()
+```
+
+To check that it is correctly added and to see the server name to add below. If not already, navigate to the root directory of the application and in the console run the code:
+
+```{r}
+#| eval: false
+rsconnect::deployApp(appDir = getwd(),           # From the current WD for the app
+                     appName = "golem_app_name", # The name of the application
+                     server = "server-name")     # The SAME name as created above
+```
+
+Once you have deployed the application, if it is a new application then there may be a requirement to add the secrets/environmental variables where appropriate. In Posit for example, these environmental variables are stored on the 'Vars' tab and should be input there.
+
+## Profiling and Benchmarking
+
+Performance testing within most programming languages requires at least 2 stages; profiling and benchmarking. Both of these are critical to understand how an app, script or function performs and therefore what are the 'bottlenecks' or slow points experienced. By understanding the processes that translate to reduced performance, targetted efforts can be made to improve the slower performing parts and improve the speed and efficiency of the tested area.
+
+The order in which the processes should be completed is largely personal preference, as they are intertwinned in their nature. For example, profiling will help to understand exactly what part of a function, app or script is performing the slowest, whilst benchmarking evaluates performance for multiple users. I tend to start with profiling of the different parts/modules of an app, or profiling of a function, as I believe it helps to understand where the majority of time is being spent and therefore what point to address first. In order to work through how to profile and benchmark, I will create an example to showcase the methodology. For the example, I will use multiple functions rather than a full shiny app. The rationale for this is that the methods and deployment of the tools is the exact same regardless of whether it is a function, script or application that is being evaluated, and so by keeping it clear and understandable here, the same principles can be translated to more complex use cases. The example and functions we will be evaluating are the following:
+
+### Walkthrough Example
+
+```{r}
+# Function to generate a data frame that contains a) player; which is the word 'Player_'
+# concetenated to a number from 1 to 10000, b) yards; which is a randomly generated poison
+# distribution of 1000000 length that has a rate of success equal to 50 and c) touchdowns;
+# which is a randomly generated poison distribution of 2000000 length that has a rate of
+# success equal to 1.
+generate_players <- function(n = 2000000) {
+    data.frame(
+        player = sample(paste0("Player_", 1:1000), n, TRUE),
+        yards = rpois(n, 50),
+        touchdowns = rpois(n, 1)
+    )
+}
+
+# Function that calculates the fantasy score for that player, which is the number of
+# yards * 0.1 points and the number of touchdowns * 6 points. This is added as a new
+# column into the data frame and returned.
+calculate_fantasy <- function(data) {
+    yards_points <- data$yards * 0.1
+    touchdown_points <- data$touchdowns * 6
+    data$points <- yards_points + touchdown_points
+    data <- as.data.frame(data)
+    return(data)
+}
+
+# Function to then rank the players by order of their fantasy points, from highest to
+# lowest points.
+rank_players <- function(data) {
+    for (player in 1:10) {
+        totals <- aggregate(points ~ player, data, sum)
+        totals <- totals[order(-totals$points), ]
+    }
+    return(totals)
+}
+
+# Running the full analysis
+run_nfl_analysis <- function() {
+    gen_play <- generate_players()
+    calc_fan <- calculate_fantasy(gen_play)
+    rank_players(calc_fan)
+}
+```
+
+#### Flame Graph Construction
+We can see that there are three functions that each provide a different role in the development of some 'final analysis' that evaluates how good in fantasy football a particular player was. The context of the example does not matter, but we can decipher from this that we are calling *'run_nfl_analysis'*, which calls the functions *'generate_players', 'calculate_fantasy'* and *'rank_players'* but *'rank players'* calls the output of *'calculate fantasy'* which calls the output of *'generate_players'*. So in other words we could write this out as (where '=\>' indicates calls):
+
+*'run_nfl_analysis'*
+
+<p>*'run_nfl_analysis'* =\> *'generate_players'*</p>
+
+<p>*'run_nfl_analysis'* =\> *'calculate_fantasy'* =\> *'generate_players'*</p>
+
+<p>*'run_nfl_analysis'* =\> *'rank_players'* =\> *'calculate_fantasy'* =\> *'generate_players'*</p>
+
+If we were to then write this semi-graphically, we could generate the below:
+
+![](images/Vertical%20Flame%20Graph.png)
+
+In order to reflect a timeline, we could then rotate that stack. So instead of reading the timeline from top to bottom, we can now read it from left to right:
+![](images/Horizontal%20Flame%20Graph.png)
+
+Now we have the stack on a timeline, it would be useful for each box to be 'scaled' based upon how long each process takes. So the processes within each call are as wide as the time taken for that process to be executed, with the timeline along the bottom indicative of total time taken for the full completion.
+![](images/Horizontal%20Flame%20Graph%20Scaled.png)
+
+Finally we can combine stack elements that are the same together, to reduce noise and transparently show processes in their groups.
+![](images/Horizontal%20Flame%20Graph%20Combined.png)
+
+At this point, we have a basic flame graph! The reason it is called a flame graph is sometimes this will be coloured in reds, oranges and yellows, however this has no impact on the meaning of the graph. From the flame graph above, we can see that on the bottom is the final function that we run, which takes the full duration to complete as it is the full task. Above that, on the second row on the left we see the *generate_players* function, which is narrow meaning that it took little time to complete compared to other tasks. Adjacent we see the *calculating_fantasy* function which takes a considerable amount of time compared to the *generate_players* function, and all other tasks above are of the same width. This indicates that this function may be a good candidate to evaluate for performance. Similarly in the final far right stack, we see all equal width boxes meaning that on particular link in that chain is slowing all the higher up processes. This could be the same *calculating_fantasy* function that is slowing the process or it may be a bespoke issue, but we have to investigate through improvements to see.
+
+#### Profvis
+If we apply this learning to our function example from above, we can use a package called *profvis* to generate the flame graph for us. This tool will record every 10ms the snapshot of calls and store it in a flame graph for evaluation. Using our functions above, we get the following:
+```{r}
+library(profvis)
+profvis(run_nfl_analysis())
+```
+
+Whilst it may look slightly overwhelming at first, the flame graph is the exact same as what we discussed earlier. That is to say, we can see the lowest bar is the overall function of *run_nfl_analysis* which took ~12000 ms (~12 seconds) to complete and above that we have a bar for *rank_players*. We then have multiple stacks that appear similar that are dominated by the bar 'aggregate' which indicates that the aggregate forumla that we are using is 1. repetitive and 2. requiring a large amount of computational power to complete. Having now identified this as a candidate for refactor, we could then introduce a different method to complete the same process, as shown below.
+
+```{r}
+rank_players_refactor <- function(data) {
+    totals <- aggregate(points ~ player, data, sum)
+    totals[order(-totals$points), ]
+}
+
+# Running the full analysis with refactored code
+run_nfl_analysis_2 <- function() {
+    gen_play <- generate_players()
+    calc_fan <- calculate_fantasy(gen_play)
+    rank_players_refactor(calc_fan)
+}
+
+profvis(run_nfl_analysis_2())
+```
+
+Immediately we can see that the computation time has decreased from ~12 seconds to ~ 1.5 seconds, representing an 87.5% reduction in execution time or in other words around 8x faster. We can see that on the left the *generate_players* and *calculating_fantasy* functions are relatively minimal in their time requirements, being around 0.25-0.3 seconds to execute both. It would be therefore fair to suggest that there is minimal gain in investing time speeding up these processes as they are largely efficient currently. Similarly the *rank_players_refactor* function executes in around 1 second with minimal repetition and shows different parts contributing to the total time such as factorisation and data frame, suggesting there is not huge time gains to be added. Should further refinement be required however, the *rank_players_refactor* would likely be a better candidate to speed up compared to the other two functions given that it occupies around 2/3 of the total time.
+
+#### Microbenchmark and bench
+If we wanted to quantify the impact of this change, we can achieve this through benchmarking. One package that I like to use for this is *microbenchmark* which allows you to run iterations of different functions to evaluate performance. Below I have written the code to compare our two methods across 5 repeats to evaluate performance speed. The benefit of completing this exercise is we can evidence our decisions of approach with empirical data, therefore illustrating why a choice was made.
+
+```{r, eval = FALSE}
+library(microbenchmark)
+benchmark_nfl <- microbenchmark(
+    old_method = run_nfl_analysis(),
+    new_method = run_nfl_analysis_2(),
+    times = 5
+)
+summary(benchmark_nfl)
+```
+
+From the above, we can see the different statistical improvements in time, such as lower and upper quantiles, median and mean of the two methods. Overall it shows that in terms of time, the new method is around 8x faster than the old method.
+
+Whilst this is great to showcase time savings, this may not be the only metric that is important in an application. Memory allocation is also vital as this can slow downstream processes as well as provide a different limiting factor to the application/workflow. In order to evaluate this, we can use a slightly different benchmarking exercise to see how memory is impacted in the two approaches.
+
+```{r, eval = FALSE}
+library(bench)
+mark(old_method = run_nfl_analysis(),
+    new_method = run_nfl_analysis_2(),
+    iterations = 5,
+    check = FALSE)
+```
+
+The output here shows a number of metrics, but most importantly is the memory allocation measure, where we see a reduction from >5GB to ~600mB. This is a massive memory improvement for a singular function, and therefore illustrates that the previously inefficient method was both time consuming and memory expensive. So an improvement in this particular function has improved the entire process drastically.
+
+Should you want to complete this process within your R Shiny application, to review the full process of the application and identify the bottlenecks, this can be done using the following code. The example will show for our primary golem application 'Adapt', however you can just rename that part based on the app you are testing.
+
+```{r, eval = FALSE}
+profvis::profvis({
+  print(
+    Adapt::run_app
+  )
+})
+```
+
+
+## GitHub Actions (Continuous Integration/CI)
+
+Development processes should be automated where possible to ensure that the code maintains function and errors are not introduced. One method of ensuring this are through a series of checks and tests that will ensure compliance, accuracy, completeness and form of code. One of the ways that this can be completed is through GitHub Actions using the file creation line in `02_dev.R`:
+
+```{r}
+#| eval: false
+usethis::use_github_action()
+```
+
+For example, using this an `R CMD Check` can be developed as a `.yaml` file, such that when a pull request is made to `main`/`master` or a branch is merged with either, the R CMD Check is enacted and ensures that the new version passes. An example of this can be seen below:
+
+```{yaml}
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+name: R-CMD-check.yaml
+
+permissions: read-all
+
+jobs:
+  R-CMD-check:
+    runs-on: ${{ matrix.config.os }}
+
+    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {os: windows-latest, r: 'release'}
+          - {os: ubuntu-latest,   r: 'devel', http-user-agent: 'release'}
+          - {os: ubuntu-latest,   r: 'release'}
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.config.r }}
+          http-user-agent: ${{ matrix.config.http-user-agent }}
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          upload-snapshots: true
+          build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
+          
+```
+
+This will perform a `R CMD Check` on pull or merge from `master`/`main` branch, for Windows latest release as well as a few Ubuntu versions. This ensures cross-compatibility of the application dependent on deployment location.
+
+# Python
+
+# Linux
+
+## SSH Connection
+
+In order to start the process of adding a new user to the linux server (RHEL 9), you first must connect to the server. Typically this is undertaken through secure shell (SSH), which is essentially a method of interacting with another machine/server outside of local. The terminal is a 'workstation' where you can write commands and interact, and the shell underlies this and identifies how to interpret the commands that you have written. Locally, this is done without any additional requirements but when attempting to write commands on a server that is not local, SSH works by 'sending' the inputs on your terminal to the 'shell' of the server you connected to. Connection through SSH can be completed in a variety of ways but two common methods would be through the computer terminal or PuTTY.
+
+### Terminal
+
+If you are using the terminal, connection can be established through:
+
+```         
+ssh username@ip_address_of_server
+```
+
+Followed by entering the password of that username when prompted.
+
+### PuTTY
+
+If you are using PuTTY, connection can be established through:
+
+![[PuTTY start-up UI]{style=".caption{    text-align: center; }"}](images/clipboard-4161191310.png){style="text-align: center" width="299"}
+
+Entering the IP address of the server in the host name section and then entering both the username and password when prompted.
+
+## User Addition
+
+Once connection has been established, users can be added through the following Linux commands:
+
+```         
+sudo useradd <new_username>
+```
+
+And then entering your password associated with your account when prompted.
+
+You then can add a password to that user account as follows:
+
+```         
+sudo passwd <new_username>
+```
+
+Entering the new password for that account twice as prompted. As you would have previously entered your own account password to approve the user addition, you will likely not be required to do that again for the password; assuming they are completed in short succession.
+
+## User Groups
+
+The user that has now been added is a functional base user on the server, with both the username and password specified above. The account will also need addition to specific user groups in order to gain the permissions associated with those groups. A common one that is used for our Posit Licenses is the usergroup `rstudio-share`. Addition to this usergroup can be completed through the following Linux code:
+
+```         
+sudo usermod -a -G rstudio-share <new_username>
+```
+
+This modifies the user (`usermod`), by appending the user (`-a`) to the group share (`-G`) that is called '`rstudio-share`' for the specified user `<new_username>`.
+
+Critically, this process must be repeated for users across the different servers that they require access to.
