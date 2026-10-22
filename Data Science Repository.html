@@ -143,7 +143,14 @@ window.Quarto = {
   <li><a href="#precision-vs-recall" id="toc-precision-vs-recall" class="nav-link" data-scroll-target="#precision-vs-recall">Precision vs Recall</a></li>
   <li><a href="#f1-score" id="toc-f1-score" class="nav-link" data-scroll-target="#f1-score">F1-Score</a></li>
   <li><a href="#roc-curve" id="toc-roc-curve" class="nav-link" data-scroll-target="#roc-curve">ROC Curve</a></li>
-  <li><a href="#auc-roc" id="toc-auc-roc" class="nav-link" data-scroll-target="#auc-roc">AUC-ROC</a></li>
+  <li><a href="#auc-roc" id="toc-auc-roc" class="nav-link" data-scroll-target="#auc-roc">AUC-ROC</a>
+  <ul class="collapse">
+  <li><a href="#multi-class-auc-roc-one-vs-rest-and-one-vs-one" id="toc-multi-class-auc-roc-one-vs-rest-and-one-vs-one" class="nav-link" data-scroll-target="#multi-class-auc-roc-one-vs-rest-and-one-vs-one">Multi-Class AUC-ROC: One-vs-Rest and One-vs-One</a>
+  <ul class="collapse">
+  <li><a href="#one-vs-rest-ovr" id="toc-one-vs-rest-ovr" class="nav-link" data-scroll-target="#one-vs-rest-ovr">One-vs-Rest (OvR)</a></li>
+  <li><a href="#one-vs-one-ovo" id="toc-one-vs-one-ovo" class="nav-link" data-scroll-target="#one-vs-one-ovo">One-vs-One (OvO)</a></li>
+  </ul></li>
+  </ul></li>
   <li><a href="#choosing-the-right-metric" id="toc-choosing-the-right-metric" class="nav-link" data-scroll-target="#choosing-the-right-metric">Choosing the Right Metric</a></li>
   <li><a href="#regression" id="toc-regression" class="nav-link" data-scroll-target="#regression">Regression</a>
   <ul class="collapse">
@@ -549,7 +556,7 @@ F1 = 2 \times \frac{0.80 \times 0.90}{0.80 + 0.90}
 <li>Both false positives and false negatives are important.</li>
 <li>A single performance measure is required.</li>
 </ul>
-<p>Because it balances precision and recall, it often provides a more realistic assessment than accuracy alone.</p>
+<p>Because it balances precision and recall, it often provides a more realistic assessment than accuracy alone. It is worth noting that when an F1-score is reported, it may represent an aggregation of multiple class-specific F1-scores. A <strong>Macro F1-score</strong> gives equal importance to every class by averaging the F1-score of each class, regardless of how frequently that class occurs in the data. In contrast, a <strong>Weighted F1-score</strong> gives greater influence to classes with more observations. As a result, Macro F1 is often a better reflection of how consistently a model performs across all classes, while Weighted F1 better reflects overall performance on the dataset as a whole. When classes are imbalanced, Weighted F1 will typically be higher if the model performs well on the majority classes but struggles on the minority classes.</p>
 </section>
 <section id="roc-curve" class="level3">
 <h3 class="anchored" data-anchor-id="roc-curve">ROC Curve</h3>
@@ -641,6 +648,49 @@ False Positive Rate = 0</code></pre>
 <figcaption>Example of AUC-ROC</figcaption>
 </figure>
 </div>
+<p>Above I have created a graph that shows the AUC-ROC visually, and within this I have labelled 3 points; A, B and C. These each represent a different threshold for the model, and by studying the graph you can see that they may have different impacts on the TPR and FPR of the classification. If you wanted to know which threshold is better to select, that answer can only be gathered from other selection metrics (accuracy, F1, recall and precision) as well as <strong>the business or application tolerance of the outcome</strong>. What I mean by this is should a false positive result be very costly or damaging, such as flagging customer transaction that are legitimate, then point A may be more favourable in terms of a threshold to choose. If false negatives (missing a true positive) are more costly however, such as diagnosis of disease, then point C may be more favourable. If they are both equally costly, then a middle ground of point B may be more favourable. This is why the context of the problem and the metrics surrounding the model at different thresholds are critical and determine what is the appropriate choice, rather than a one-size-fits-all approach.</p>
+<p>An important distinction that I want to cement here is that an AUC of 0.5 is <strong>not</strong> because there is a 50/50 chance of classifying correctly. If that was the case, this would immediately break when there are more classes than a binary option, which it does not. The reason it is 0.5 for random guesses is that at any threshold, the expected TPR is equal to the expected FPR, because the diagonal line represents a classifier that cannot distinguish positive from negative examples; or in other words <strong><em>y = x</em></strong>. The area beneath the diagonal therefore is:</p>
+<p><span class="math display">
+AUC = \frac{1}{2} \times 1 \times 1 = 0.5
+</span></p>
+<section id="multi-class-auc-roc-one-vs-rest-and-one-vs-one" class="level4">
+<h4 class="anchored" data-anchor-id="multi-class-auc-roc-one-vs-rest-and-one-vs-one">Multi-Class AUC-ROC: One-vs-Rest and One-vs-One</h4>
+<p>The understanding that AUC is not simply the probability of a correct classification becomes even more important when considering multi-class problems. Suppose there are four classes. Random guessing would produce an expected accuracy of only 0.25 (25%), yet the expected AUC remains 0.5. This is because AUC measures the ability to rank observations correctly rather than the proportion classified correctly at a particular threshold.</p>
+<p>For multi-class classification, ROC curves are typically extended using either a <strong>One-vs-Rest (OvR)</strong> or <strong>One-vs-One (OvO)</strong> approach.</p>
+<section id="one-vs-rest-ovr" class="level5">
+<h5 class="anchored" data-anchor-id="one-vs-rest-ovr">One-vs-Rest (OvR)</h5>
+<p>In the One-vs-Rest approach, each class is treated as the positive class in turn, while all remaining classes are combined into a single negative group. For a four-class problem with classes A, B, C, and D, four separate ROC curves would be calculated:</p>
+<ul>
+<li>A vs (B, C, D)</li>
+<li>B vs (A, C, D)</li>
+<li>C vs (A, B, D)</li>
+<li>D vs (A, B, C)</li>
+</ul>
+<p>Each ROC curve produces its own AUC value, and these are commonly averaged to produce an overall multi-class AUC. An AUC of 0.85 for Class A in an OvR analysis can be interpreted as <em>If we randomly select one observation from Class A and one observation from any of the other classes, there is an 85% probability that the model will assign a higher score to the Class A observation.</em></p>
+</section>
+<section id="one-vs-one-ovo" class="level5">
+<h5 class="anchored" data-anchor-id="one-vs-one-ovo">One-vs-One (OvO)</h5>
+<p>The One-vs-One approach compares every possible pair of classes separately. For four classes, this produces:</p>
+<ul>
+<li>A vs B</li>
+<li>A vs C</li>
+<li>A vs D</li>
+<li>B vs C</li>
+<li>B vs D</li>
+<li>C vs D</li>
+</ul>
+<p>This results in:</p>
+<p><span class="math display">
+\frac{k(k-1)}{2}
+</span></p>
+<p>pairwise ROC curves, where (k) is the number of classes. For four classes:</p>
+<p><span class="math display">
+\frac{4(4-1)}{2} = 6
+</span></p>
+<p>ROC curves are calculated. The resulting AUC values are then averaged to provide an overall measure of performance. An AUC of 0.85 for the comparison between Classes A and B can be interpreted as <em>If we randomly select one observation from Class A and one observation from Class B, there is an 85% probability that the model will assign a higher score to the observation belonging to the correct class.</em></p>
+<p>The key point is that even in multi-class settings, the baseline AUC for random predictions remains 0.5 because the classifier has no ability to rank one class above another. The expected ROC curve therefore still follows the diagonal line (y=x), where the True Positive Rate equals the False Positive Rate across all thresholds. Accuracy changes as the number of classes increases because random guessing becomes less likely to select the correct class, whereas AUC continues to measure ranking ability rather than classification correctness.</p>
+</section>
+</section>
 </section>
 <section id="choosing-the-right-metric" class="level3">
 <h3 class="anchored" data-anchor-id="choosing-the-right-metric">Choosing the Right Metric</h3>

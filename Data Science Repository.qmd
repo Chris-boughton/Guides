@@ -1251,7 +1251,7 @@ If you are using PuTTY, connection can be established through:
 
 Entering the IP address of the server in the host name section and then entering both the username and password when prompted.
 
-## User Addition
+## User Addition and Deletion
 
 Once connection has been established, users can be added through the following Linux commands:
 
@@ -1268,6 +1268,20 @@ sudo passwd <new_username>
 ```
 
 Entering the new password for that account twice as prompted. As you would have previously entered your own account password to approve the user addition, you will likely not be required to do that again for the password; assuming they are completed in short succession.
+
+Similarly if you are wanting to delete a user, this can be done as follows:
+
+```
+sudo userdel -r <username>
+```
+The *-r* in the userdel line means recursive, which forces the deletion of the home directory (*/home/username*) as well as deleting the user from *etc/passwd*. If you are deleting a user from Linux but also intend to remove that user as a Posit user, this can be done by first stopping the connect server, then removing their account from the Posit folder and then restarting the server. Following a restart, check the status to ensure everything is running smoothly. Such as the below:
+
+```
+sudo systemctl stop rstudio-connect 
+sudo /opt/rstudio-connect/bin/usermanager delete \--username <username>
+sudo systemctl start rstudio-connect 
+sudo systemctl status rstudio-connect 
+```
 
 ## User Groups
 
