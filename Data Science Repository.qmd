@@ -8,6 +8,11 @@ format:
     html-math-method: katex
     theme: styles.scss
 ---
+```{r, echo = FALSE}
+#| label: Loading packages
+library(gt)
+library(tibble)
+```
 
 # Fundamentals
 
@@ -21,38 +26,51 @@ One of the primary objectives of any predictive model is to identify patterns th
 
 **Overfitting** occurs when a model becomes overly specialised to the training data. Rather than learning general patterns, the model memorises noise, random fluctuations and observations that are not representative of future data. Whilst the model may achieve excellent performance on the training dataset, performance often deteriorates significantly when applied to new observations.
 
-A useful way of visualising this concept is to consider fitting a curve through a collection of points. An underfit model draws a very simple line that fails to capture the overall trend. An overfit model produces a highly complex curve that bends excessively to pass through every point. Ideally, a model should strike a balance between these extremes, capturing genuine patterns whilst ignoring random noise.
+A useful way of visualising this concept is to consider fitting a curve through a collection of points. An underfit model draws a very simple line that fails to capture the overall trend. An overfit model produces a highly complex curve that bends excessively to pass through every point. Ideally, a model should strike a balance between these extremes, capturing genuine patterns whilst ignoring random noise. Several techniques can help reduce overfitting, including:
 
-Several techniques can help reduce overfitting, including:
-
-- Increasing the amount of training data.
-- Reducing model complexity.
-- Feature selection.
-- Cross-validation.
-- Regularisation techniques such as Lasso and Ridge regression.
+- Increasing the amount of training data
+- Reducing model complexity
+- Feature selection
+- Cross-validation
+- Regularisation techniques such as Lasso and Ridge regression
 
 The overall goal is to build a model that captures meaningful relationships whilst remaining robust when applied to unseen data.
 
 ## Supervised vs Unsupervised Learning
 
-Most machine learning techniques can be categorised as either **supervised** or **unsupervised** learning. The distinction revolves around whether the data contains a known outcome variable that the model attempts to learn.
+Most machine learning techniques can be categorised as either **supervised** or **unsupervised** learning. The distinction revolves around whether the data contains a known outcome variable that the model attempts to learn. In **supervised learning**, historical examples contain both input variables and the desired output. The model learns the relationship between them and can subsequently predict outcomes for new observations. For example, a model may be trained on:
 
-In **supervised learning**, historical examples contain both input variables and the desired output. The model learns the relationship between them and can subsequently predict outcomes for new observations. For example, a model may be trained on:
+```{r, echo = FALSE}
+#| label: Supervised model example table
+tibble(
+  Income = c("£40,000", "£25,000", "£65,000"),
+  Age = c(30, 21, 45),
+  `Loan Approved` = c("Yes", "No", "Yes")
+) |>
+  gt() |>
+  tab_header(
+    title = md("**Example Loan Approval Dataset**")
+  ) |>
+  tab_style(
+    style = cell_text(weight = "bold", color = "darkgreen"),
+    locations = cells_body(
+      columns = `Loan Approved`,
+      rows = `Loan Approved` == "Yes"
+    )
+  ) |>
+  tab_style(
+    style = cell_text(weight = "bold", color = "firebrick"),
+    locations = cells_body(
+      columns = `Loan Approved`,
+      rows = `Loan Approved` == "No"
+    )
+  )
+```
 
-| Income | Age | Loan Approved |
-|----------|----------|----------|
-| £40,000 | 30 | Yes |
-| £25,000 | 21 | No |
-| £65,000 | 45 | Yes |
+Because the outcome "Loan Approved" is known, the model can learn patterns associated with approval decisions. In **unsupervised learning**, no target variable exists. Instead, the goal is to identify natural structures, patterns, groupings, or relationships within the data itself. For example, customer transaction records might be analysed to identify groups of customers who exhibit similar purchasing behaviour without any predefined labels. A useful rule of thumb is:
 
-Because the outcome ("Loan Approved") is known, the model can learn patterns associated with approval decisions.
-
-In **unsupervised learning**, no target variable exists. Instead, the goal is to identify natural structures, patterns, groupings, or relationships within the data itself. For example, customer transaction records might be analysed to identify groups of customers who exhibit similar purchasing behaviour without any predefined labels.
-
-A useful rule of thumb is:
-
-- Supervised learning predicts known outcomes.
-- Unsupervised learning discovers hidden patterns.
+- Supervised learning predicts known outcomes
+- Unsupervised learning discovers hidden patterns
 
 ## Supervised
 
@@ -60,35 +78,40 @@ Supervised learning is the most widely used area of machine learning and forms t
 
 ### Classification
 
-Classification models are used when the outcome variable represents a *category* rather than a *continuous* value. The objective is to assign observations into predefined classes based on the characteristics contained within the input variables. During training, the algorithm learns patterns that distinguish one class from another. When presented with a new observation, it evaluates these characteristics and determines which class the observation is most likely to belong to. 
+Classification models are used when the outcome variable represents a *category* rather than a *continuous* value. The objective is to assign observations into predefined classes based on the characteristics contained within the input variables. During training, the algorithm learns patterns that distinguish one class from another. When presented with a new observation, it evaluates these characteristics and determines which class the observation is most likely to belong to. Common applications include:
 
-Common applications include:
-
-- Fraud detection.
-- Disease diagnosis.
-- Customer churn prediction.
-- Email spam filtering.
-- Sentiment analysis.
+- Fraud detection
+- Disease diagnosis
+- Customer churn prediction
+- Email spam filtering
+- Sentiment analysis
 
 For example, if I was wanting to predict whether a customer would leave a subscription service like Netflix and I had the data shown here:
 
-| Age | Monthly Spend | Tenure (Months) | Status |
-|----------|----------|----------|----------|
-| 25 | £20 | 3 | Leave |
-| 43 | £55 | 19 | Active |
-| 29 | £23 | 5 | Leave |
-| 88 | £44 | 49 | Active |
+```{r, echo = FALSE}
+#| label: Classification example data
+tibble(
+  Age = c(25, 43, 29, 88),
+  `Monthly Spend` = c("£20", "£55", "£23", "£44"),
+  `Tenure (Months)` = c(3, 19, 5, 49),
+  Status = c("Leave", "Active", "Leave", "Active")
+) |>
+  gt() |>
+  tab_header(
+    title = md("**Customer Status Dataset**")
+  ) |>
+  data_color(
+    columns = Status,
+    palette = c("Leave" = "#FDECEA", "Active" = "#E8F5E9")
+  )
+```
 
-The input variables (features) would be the age, spend and tenure whilst the target variable (class) would be their status. Using this historical data, the model may learn that individuals that spend little money and have a reduced tenure are likely to leave and therefore this could be used to help navigate efforts and expenditure to improve customer retention. This method ultimately allows the assignment of a new observation/value/data point into a category that best describes its characteristics, based upon historical learning.
+The input variables (features) would be the age, spend and tenure whilst the target variable (class) would be their status. Using this historical data, the model may learn that individuals that spend little money and have a reduced tenure are likely to leave and therefore this could be used to help navigate efforts and expenditure to improve customer retention. This method ultimately allows the assignment of a new observation/value/data point into a category that best describes its characteristics, based upon historical learning. The output of a classification model is typically either:
 
-The output of a classification model is typically either:
+- A predicted class label
+- A probability associated with each class
 
-- A predicted class label.
-- A probability associated with each class.
-
-The predicted class label is exactly what was shown above, the output of the classification in a simple format. E.g. if we had a new observation where a customer spent £10 a month and had a tenure of 4 months, the classification would likely be that they might leave. Underneath this decision is the probability that it belongs to this particular classification class, which is what the other output can be. For example it might be 85% likely that they belong to the 'Left' category rather than the 'Active' category. If there are more than two categories, e.g. no longer a binary, this can become increasingly important to gather understanding as to how likely it is to belong to that class. Should it be 90% that someone may leave for example, they may be a customer to target efforts to retain, rather than someone that is 51% to leave. The probability associated with each class offers great insight into how well the new observations falls into the category assigned.
-
-Common classification algorithms include:
+The predicted class label is exactly what was shown above, the output of the classification in a simple format. E.g. if we had a new observation where a customer spent £10 a month and had a tenure of 4 months, the classification would likely be that they might leave. Underneath this decision is the probability that it belongs to this particular classification class, which is what the other output can be. For example it might be 85% likely that they belong to the 'Leave' category rather than the 'Active' category. If there are more than two categories, e.g. no longer a binary, this can become increasingly important to gather understanding as to how likely it is to belong to that class. Should it be 90% that someone may leave for example, they may be a customer to target efforts to retain, rather than someone that is 51% to leave. The probability associated with each class offers great insight into how well the new observations falls into the category assigned. Common classification algorithms include:
 
 - Logistic Regression
 - Decision Trees
@@ -103,16 +126,53 @@ Model performance is often evaluated using metrics such as **accuracy**, **preci
 
 A confusion matrix summarises the predictions made by a classification model against the true outcomes.
 
-|                      | Actual Positive | Actual Negative |
-|----------------------|----------------|----------------|
-| Predicted Positive   | True Positive (TP) | False Positive (FP) |
-| Predicted Negative   | False Negative (FN) | True Negative (TN) |
+```{r, echo = FALSE}
+#| label: Confusion matrix
+data.frame(
+  `Actual Positive` = c("True Positive (TP)", "False Negative (FN)"),
+  `Actual Negative` = c("False Positive (FP)", "True Negative (TN)"),
+  row.names = c("Predicted Positive", "Predicted Negative")
+) |>
+  gt() |>
+  tab_header(
+    title = md("**Confusion Matrix**")
+  ) |>
+  tab_style(
+    style = list(
+      cell_fill(color = "#E8F5E9"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_body(rows = 1, columns = 1)
+  ) |>
+  tab_style(
+    style = list(
+      cell_fill(color = "#E8F5E9"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_body(rows = 2, columns = 2)
+  ) |>
+  tab_style(
+    style = list(
+      cell_fill(color = "#FDECEA"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_body(rows = 1, columns = 2)
+  ) |>
+  tab_style(
+    style = list(
+      cell_fill(color = "#FDECEA"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_body(rows = 2, columns = 1)
+  )
+```
 
 The four possible outcomes are:
-- **True Positive (TP)**: The model correctly predicts the positive class.
-- **True Negative (TN)**: The model correctly predicts the negative class.
-- **False Positive (FP)**: The model predicts a positive outcome when none exists.
-- **False Negative (FN)**: The model predicts a negative outcome when the true outcome is positive.
+
+- **True Positive (TP)**: The model correctly predicts the positive class
+- **True Negative (TN)**: The model correctly predicts the negative class
+- **False Positive (FP)**: The model predicts a positive outcome when none exists
+- **False Negative (FN)**: The model predicts a negative outcome when the true outcome is positive
 
 All of the evaluation metrics discussed below are derived from these four values.
 
@@ -155,19 +215,13 @@ Accuracy is simple to understand but can be highly misleading when working with 
 
 ### Precision
 
-Precision evaluates how reliable positive predictions are. It answers the question *Of all the observations predicted to belong to the positive class, how many actually were positive?*
-
-The formula is:
+Precision evaluates how reliable positive predictions are. This considers the question *of all the observations predicted to belong to the positive class, how many actually were positive?* The formula is:
 
 $$
 Precision = \frac{TP}{TP + FP}
 $$
 
-Suppose a fraud model identifies 100 transactions as fraudulent:
-- 80 are genuinely fraudulent.
-- 20 are legitimate transactions incorrectly flagged.
-
-The precision would be:
+If we were to imagine a fraud model that identifies 100 transactions as fraudulent, but within that indentification process it is found that 80 are genuinely fraudulent whilst 20 are legitimate transactions incorrectly flagged. The precision would be calculated as:
 
 $$
 Precision = \frac{80}{80+20}=0.80
@@ -175,7 +229,7 @@ $$
 
 or **80%**.
 
-High precision indicates that when the model predicts a positive case, it is usually correct. Precision is often particularly important when false positives are costly. Examples include:
+High precision indicates that when the model predicts a positive case, it is usually correct. Precision is often particularly important when false positives are costly such as:
 
 - Incorrectly flagging legitimate banking transactions.
 - Wrongly accusing customers of fraudulent behaviour.
@@ -183,20 +237,13 @@ High precision indicates that when the model predicts a positive case, it is usu
 
 ### Recall (Sensitivity)
 
-Recall measures the model's ability to identify all positive cases. It answers the question *Of all the truly positive observations, how many did the model successfully identify?*
-
-The formula is:
+Recall measures the model's ability to identify all positive cases. This considers the question *of all the truly positive observations, how many did the model successfully identify?* The formula is:
 
 $$
 Recall = \frac{TP}{TP + FN}
 $$
 
-Suppose 100 fraudulent transactions actually occurred:
-
-- The model successfully detects 90.
-- The model misses 10.
-
-The recall would be:
+If we were to imagine that there was 100 fraudulent transactions that ctually occurred and our model successfully detects 90 but fails to/misses 10 of them, the recall would be:
 
 $$
 Recall = \frac{90}{90+10}=0.90
@@ -213,34 +260,67 @@ High recall indicates that very few positive cases are missed. Recall is particu
 
 In these situations, missing a genuine positive case may be far more serious than generating additional false alarms.
 
+### Specificity (True Negative Rate)
+
+Whilst Recall measures how effectively a model identifies positive cases, **Specificity** measures how effectively it identifies negative cases. It considers the question *of all the truly negative observations, how many did the model correctly identify as negative?* The formula is:
+
+$$
+Specificity = \frac{TN}{TN + FP}
+$$
+
+One way to consider this would be to imagine there was a medical test that is applied to 1,000 healthy individuals where 950 are correctly identified as healthy but 50 are incorrectly flagged as having the disease. The specificity would be calculated as:
+
+$$
+Specificity = \frac{950}{950+50}=0.95
+$$
+
+or **95%**.
+
+High specificity indicates that relatively few negative observations are incorrectly classified as positive. This can be particularly important when false positives are costly or disruptive, such as:
+
+- Incorrectly diagnosing healthy patients.
+- Wrongly flagging legitimate transactions as fraudulent.
+- Producing unnecessary investigations or interventions.
+
+Recall and Specificity are often considered together because they describe performance on opposite classes. By this I mean that **Recall (Sensitivity)** focuses on identifying positives whilst **Specificity** focuses on identifying negatives. Improving one may sometimes reduce the other, depending on the classification threshold selected.
+
 ### Precision vs Recall
 
 There is often a trade-off between precision and recall. A model can achieve very high recall simply by predicting many observations as positive. However, doing so typically increases the number of false positives and reduces precision. Conversely, a model can achieve very high precision by only making positive predictions when it is extremely confident. However, this often causes genuine positive cases to be missed, reducing recall. The appropriate balance depends on the business problem. A few use cases where you'd prioritise one over the other I've listed below.
 
-| Use Case | More Important Metric |
-|-----------|-----------|
-| Disease Screening | Recall |
-| Terrorism Detection | Recall |
-| Fraud Monitoring | Often Recall |
-| Spam Detection | Often Precision |
-| Product Recommendation | Precision |
+```{r, echo = FALSE}
+#| label: Precision vs recall table
+tibble(
+  `Use Case` = c(
+    "Disease Screening",
+    "Terrorism Detection",
+    "Fraud Monitoring",
+    "Spam Detection",
+    "Product Recommendation"
+  ),
+  `More Important Metric` = c(
+    "Recall",
+    "Recall",
+    "Often Recall",
+    "Often Precision",
+    "Precision"
+  )
+) |>
+  gt() |>
+  tab_header(
+    title = md("**Precision vs Recall by Use Case**")
+  )
+```
 
 ### F1-Score
 
-The F1-score combines precision and recall into a single metric. Rather than calculating a simple average, it uses the **harmonic mean**, which penalises situations where one metric is much lower than the other.
-
-The formula is:
+The F1-score combines precision and recall into a single metric. Rather than calculating a simple average, it uses the **harmonic mean**, which penalises situations where one metric is much lower than the other. The formula is:
 
 $$
 F1 = 2 \times \frac{Precision \times Recall}{Precision + Recall}
 $$
 
-Suppose:
-
-- Precision = 0.80
-- Recall = 0.90
-
-Then:
+If we were to imagine a scenario whereby a model has a calculated precision of 0.80 and a calculated recall of 0.90, we could produce the F1-score by:
 
 $$
 F1 = 2 \times \frac{0.80 \times 0.90}{0.80 + 0.90}
@@ -255,7 +335,7 @@ The F1-score is particularly useful when:
 - Both false positives and false negatives are important.
 - A single performance measure is required.
 
-Because it balances precision and recall, it often provides a more realistic assessment than accuracy alone. It is worth noting that when an F1-score is reported, it may represent an aggregation of multiple class-specific F1-scores. A **Macro F1-score** gives equal importance to every class by averaging the F1-score of each class, regardless of how frequently that class occurs in the data. In contrast, a **Weighted F1-score** gives greater influence to classes with more observations. As a result, Macro F1 is often a better reflection of how consistently a model performs across all classes, while Weighted F1 better reflects overall performance on the dataset as a whole. When classes are imbalanced, Weighted F1 will typically be higher if the model performs well on the majority classes but struggles on the minority classes.
+Because it balances precision and recall, it often provides a more realistic assessment than accuracy alone. It is worth noting that when an F1-score is reported, it may represent an aggregation of multiple class-specific F1-scores. A **Macro F1-score** gives equal importance to every class by averaging the F1-score of each class, regardless of how frequently that class occurs in the data. In contrast, a **Weighted F1-score** gives greater influence to classes with more observations. As a result, Macro F1 is often a better reflection of how consistently a model performs across all classes, while Weighted F1 better reflects overall performance on the dataset as a whole. When classes are imbalanced, Weighted F1 will typically be higher if the model performs well on the majority classes but struggles on the minority classes. This is discussed in much greater detail later on in the @multiclass-weighting section.
 
 ### ROC Curve
 
@@ -263,12 +343,25 @@ Unlike Accuracy, Precision, Recall, and F1-score, which are calculated from a co
 
 For example:
 
-| Customer | Probability of Leaving |
-|-----------|-----------|
-| A | 0.92 |
-| B | 0.74 |
-| C | 0.48 |
-| D | 0.21 |
+```{r, echo = FALSE}
+#| label: ROC curve leave table
+tibble(
+  Customer = c("A", "B", "C", "D"),
+  Probability = c(0.92, 0.74, 0.48, 0.21)
+) |>
+  gt() |>
+  tab_header(
+    title = md("**Customer Leave Predictions**")
+  ) |>
+  fmt_percent(
+    columns = Probability,
+    decimals = 0
+  ) |>
+  data_color(
+    columns = Probability,
+    palette = c("#E8F5E9", "#FFF3E0", "#FDECEA")
+  )
+```
 
 To convert probabilities into classifications, a threshold is typically selected.
 
@@ -307,15 +400,61 @@ The **Area Under the ROC Curve (AUC-ROC)** summarises the ROC curve as a single 
 
 Interpretation is often:
 
-| AUC | Interpretation |
-|------|------|
-| 0.50 | No better than random guessing |
-| 0.60 - 0.70 | Poor |
-| 0.70 - 0.80 | Fair |
-| 0.80 - 0.90 | Good |
-| 0.90 - 1.00 | Excellent |
+``` {r, echo = FALSE}
+#| label: AUC-ROC interpretation
+tibble(
+  AUC = c(
+    "0.50",
+    "0.60 - 0.70",
+    "0.70 - 0.80",
+    "0.80 - 0.90",
+    "0.90 - 1.00"
+  ),
+  Interpretation = c(
+    "No better than random guessing",
+    "Poor",
+    "Fair",
+    "Good",
+    "Excellent"
+  )
+) |>
+  gt() |>
+  tab_header(
+    title = md("**AUC Interpretation Guide**")
+  ) |>
+  tab_style(
+    style = list(
+      cell_fill(color = "#FDECEA"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_body(
+      columns = Interpretation,
+      rows = Interpretation %in% c("No better than random guessing", "Poor")
+    )
+  ) |>
+  tab_style(
+    style = list(
+      cell_fill(color = "#FFF3E0"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_body(
+      columns = Interpretation,
+      rows = Interpretation == "Fair"
+    )
+  ) |>
+  tab_style(
+    style = list(
+      cell_fill(color = "#E8F5E9"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_body(
+      columns = Interpretation,
+      rows = Interpretation %in% c("Good", "Excellent")
+    )
+  )
+```
 
-An AUC of 0.85 can be interpreted as *If we randomly select one positive and one negative observation, there is an 85% probability that the model will assign a higher score to the positive observation than the negative observation.* One advantage of AUC-ROC is that it evaluates a model's ability to distinguish between classes across all possible classification thresholds. Rather than measuring performance at a single cut-off value, AUC assesses how effectively the model ranks positive observations above negative observations. As a result, AUC often provides a more robust measure of classification performance, particularly when decision thresholds may change depending on the context of the problem. 
+An AUC of 0.85 can be interpreted as *if we randomly select one positive and one negative observation, there is an 85% probability that the model will assign a higher score to the positive observation than the negative observation.* One advantage of AUC-ROC is that it evaluates a model's ability to distinguish between classes across all possible classification thresholds. Rather than measuring performance at a single cut-off value, AUC assesses how effectively the model ranks positive observations above negative observations. As a result, AUC often provides a more robust measure of classification performance, particularly when decision thresholds may change depending on the context of the problem. 
 
 ![Example of AUC-ROC](images/AUC.png)
 
@@ -326,6 +465,72 @@ An important distinction that I want to cement here is that an AUC of 0.5 is **n
 $$
 AUC = \frac{1}{2} \times 1 \times 1 = 0.5
 $$
+
+### Threshold Selection
+
+Most classification models do not directly predict classes. Instead, they produce a probability that an observation belongs to a particular class.
+
+For example:
+
+```text
+Customer A → 0.92
+Customer B → 0.74
+Customer C → 0.48
+Customer D → 0.21
+```
+
+A classification threshold is then used to convert these probabilities into class predictions. A common default is:
+
+```text
+Probability > 0.50 → Positive Class
+Probability ≤ 0.50 → Negative Class
+```
+
+However, there is nothing inherently special about a threshold of 0.50. Depending on the application, a higher or lower threshold may be more appropriate.
+
+Reducing the threshold causes more observations to be classified as positive. This generally increases Recall because fewer positive cases are missed, but often reduces Precision because more false positives are generated.
+
+Increasing the threshold has the opposite effect. Positive predictions become more selective, which typically improves Precision but reduces Recall as more genuine positive cases are missed.
+
+This trade-off means that selecting an appropriate threshold is often just as important as selecting the model itself. The most suitable threshold depends on the business context and the relative consequences of false positives and false negatives.
+
+For example:
+
+- Disease screening often prioritises Recall and may therefore use a lower threshold.
+- Spam detection often prioritises Precision and may therefore use a higher threshold.
+- Fraud detection frequently seeks a balance between the two.
+
+A model should therefore not be judged solely on its default threshold. Instead, thresholds are typically selected using performance metrics and domain knowledge to achieve the desired balance between different types of prediction error.
+
+### Precision-Recall Curve
+
+Whilst the ROC Curve plots the True Positive Rate against the False Positive Rate, a **Precision-Recall (PR) Curve** plots:
+
+- **Recall** on the x-axis.
+- **Precision** on the y-axis.
+
+Like the ROC curve, the Precision-Recall curve evaluates model performance across many classification thresholds. The main advantage of the Precision-Recall curve is that it focuses directly on performance for the positive class. This can make it particularly informative when working with highly imbalanced datasets where positive cases are relatively rare. For example this could be seen in:
+
+- Fraud detection.
+- Disease diagnosis.
+- Equipment failure prediction.
+- Rare event forecasting.
+
+In these situations, a model may achieve a strong ROC-AUC whilst still producing a large number of false positive predictions. The Precision-Recall curve provides additional insight into this behaviour.
+
+### PR-AUC
+
+The **Area Under the Precision-Recall Curve (PR-AUC)** summarises the Precision-Recall curve as a single value. Higher values indicate that the model is capable of achieving both:
+
+- High precision.
+- High recall.
+
+Unlike ROC-AUC, which evaluates overall ranking ability between positive and negative observations, PR-AUC focuses on how effectively positive cases are identified. As a result:
+
+- **ROC-AUC** is often useful for comparing general classification performance.
+- **PR-AUC** is often preferred when the positive class is rare and of greatest interest.
+
+For highly imbalanced datasets, PR-AUC can provide a more realistic assessment of model usefulness than ROC-AUC alone.
 
 #### Multi-Class AUC-ROC: One-vs-Rest and One-vs-One
 
@@ -342,7 +547,7 @@ In the One-vs-Rest approach, each class is treated as the positive class in turn
 - C vs (A, B, D)
 - D vs (A, B, C)
 
-Each ROC curve produces its own AUC value, and these are commonly averaged to produce an overall multi-class AUC. An AUC of 0.85 for Class A in an OvR analysis can be interpreted as *If we randomly select one observation from Class A and one observation from any of the other classes, there is an 85% probability that the model will assign a higher score to the Class A observation.*
+Each ROC curve produces its own AUC value, and these are commonly averaged to produce an overall multi-class AUC. An AUC of 0.85 for Class A in an OvR analysis can be interpreted as *if we randomly select one observation from Class A and one observation from any of the other classes, there is an 85% probability that the model will assign a higher score to the Class A observation.*
 
 ##### One-vs-One (OvO)
 
@@ -367,9 +572,55 @@ $$
 \frac{4(4-1)}{2} = 6
 $$
 
-ROC curves are calculated. The resulting AUC values are then averaged to provide an overall measure of performance. An AUC of 0.85 for the comparison between Classes A and B can be interpreted as *If we randomly select one observation from Class A and one observation from Class B, there is an 85% probability that the model will assign a higher score to the observation belonging to the correct class.*
+ROC curves are calculated. The resulting AUC values are then averaged to provide an overall measure of performance. An AUC of 0.85 for the comparison between Classes A and B can be interpreted as *if we randomly select one observation from Class A and one observation from Class B, there is an 85% probability that the model will assign a higher score to the observation belonging to the correct class.*
 
 The key point is that even in multi-class settings, the baseline AUC for random predictions remains 0.5 because the classifier has no ability to rank one class above another. The expected ROC curve therefore still follows the diagonal line \(y=x\), where the True Positive Rate equals the False Positive Rate across all thresholds. Accuracy changes as the number of classes increases because random guessing becomes less likely to select the correct class, whereas AUC continues to measure ranking ability rather than classification correctness.
+
+### Micro, Macro, and Weighted Averaging [#multiclass-weighting]
+
+In binary classification, performance metrics such as Precision, Recall and F1-score are calculated directly from a single confusion matrix. For multi-class problems, these metrics must be aggregated across classes. The three most common approaches are:
+
+#### Macro Averaging
+
+Macro averaging calculates the metric independently for each class and then takes the simple average.
+
+$$
+Macro\ Metric = \frac{\sum Metric_i}{k}
+$$
+
+where \(k\) is the number of classes.
+
+Characteristics:
+
+- Every class receives equal importance.
+- Performs well when all classes are equally important.
+- Can reveal poor performance on minority classes.
+
+#### Weighted Averaging
+
+Weighted averaging calculates the metric for each class and then weights each result according to the number of observations belonging to that class.
+
+Characteristics:
+
+- Larger classes contribute more to the final score.
+- More representative of overall dataset performance.
+- Can hide poor performance on minority classes.
+
+#### Micro Averaging
+
+Micro averaging aggregates all True Positives, False Positives and False Negatives across all classes before calculating the metric.
+
+Characteristics:
+
+- Treats every observation equally.
+- Heavily influenced by majority classes.
+- Commonly used when overall predictive performance is the primary concern.
+
+In practice:
+
+- **Macro** emphasises fairness across classes.
+- **Weighted** reflects dataset composition.
+- **Micro** reflects overall classification performance.
 
 ### Choosing the Right Metric
 
@@ -382,6 +633,131 @@ Whilst AUC-ROC is often considered one of the most informative classification me
 - **AUC-ROC** evaluates overall classification performance across multiple decision thresholds.
 
 In practice, it is common to review several metrics together. A model with excellent accuracy may perform poorly in terms of recall, whilst a model with excellent recall may generate too many false positives. Understanding these trade-offs within the context of the business/model application is essential when selecting and evaluating machine learning models in real-world settings.
+
+### Balanced Accuracy
+
+When class distributions are highly imbalanced, standard accuracy can be misleading. In these situations, **Balanced Accuracy** can provide a more informative measure of performance.
+
+Balanced Accuracy is calculated as:
+
+$$
+Balanced\ Accuracy = \frac{Recall + Specificity}{2}
+$$
+
+By averaging performance on both positive and negative classes, Balanced Accuracy prevents a model from appearing effective simply because it predicts the majority class well.
+
+For example, suppose:
+
+- Recall = 0.90
+- Specificity = 0.70
+
+Then:
+
+$$
+Balanced\ Accuracy = \frac{0.90 + 0.70}{2}=0.80
+$$
+
+Balanced Accuracy is particularly useful when:
+
+- Class distributions are uneven.
+- Minority classes are important.
+- Standard accuracy may be misleading.
+
+### Handling Class Imbalance
+
+Many real-world classification problems contain substantially more observations from one class than another.
+
+Examples include:
+
+- Fraud detection, where fraudulent transactions are rare.
+- Disease diagnosis, where positive cases represent only a small proportion of the population.
+- Equipment failure prediction, where failures occur infrequently compared to normal operation.
+
+This is known as **class imbalance**.
+
+Class imbalance can create challenges because many machine learning algorithms naturally focus on optimising overall performance. As a result, a model may learn the majority class very well whilst performing poorly on the minority class.
+
+For example, suppose only 1% of transactions are fraudulent. A model that predicts every transaction as legitimate would achieve:
+
+$$
+Accuracy = 99\%
+$$
+
+despite failing to identify a single fraudulent transaction.
+
+For this reason, metrics such as Precision, Recall, F1-score, PR-AUC, and Balanced Accuracy are often more informative than Accuracy when class imbalance exists.
+
+Several techniques can be used to address class imbalance.
+
+#### Oversampling
+
+The minority class is duplicated or expanded so that it represents a larger proportion of the training data.
+
+#### Undersampling
+
+Observations from the majority class are removed to create a more balanced dataset.
+
+#### Synthetic Sampling (SMOTE)
+
+Rather than duplicating existing observations, synthetic minority observations are generated from existing minority-class examples.
+
+#### Class Weighting
+
+Additional penalties are assigned when minority-class observations are misclassified. This encourages the algorithm to pay greater attention to the minority class during training.
+
+There is no universally best solution. The most appropriate approach depends on the size of the dataset, the degree of imbalance, and the business consequences associated with classification errors.
+
+### Log Loss (Cross-Entropy)
+
+Accuracy evaluates whether a prediction is correct or incorrect. However, it does not consider how confident the model was when making that prediction.
+
+Suppose two models predict that a customer will leave:
+
+| Model | Predicted Probability |
+|---------|---------|
+| A | 0.99 |
+| B | 0.51 |
+
+If the customer leaves, both predictions would be considered correct and contribute equally to the model's Accuracy score.
+
+Intuitively, however, Model A appears to have performed better because it was far more confident in the correct prediction.
+
+Now consider two incorrect predictions:
+
+| Model | Predicted Probability |
+|---------|---------|
+| A | 0.49 |
+| B | 0.99 |
+
+If the customer remains, both predictions would be classified as incorrect. However, the second prediction is arguably a much more serious mistake because the model was extremely confident and still wrong.
+
+**Log Loss** addresses this limitation by evaluating the predicted probabilities themselves rather than only the final classifications. Predictions that are confidently correct are rewarded, whilst predictions that are confidently incorrect receive substantial penalties.
+
+Consequently, Log Loss assesses both:
+
+- Whether predictions are correct.
+- Whether the associated probabilities are reasonable.
+
+A low Log Loss indicates that a model is assigning high probabilities to observations that belong to the correct class and low probabilities to observations that do not.
+
+This makes Log Loss particularly useful when predicted probabilities themselves are important, such as:
+
+- Customer churn modelling.
+- Credit risk modelling.
+- Insurance pricing.
+- Medical risk assessment.
+
+Many modern classification algorithms are therefore trained by minimising Log Loss rather than maximising Accuracy because it provides a richer assessment of predictive performance.
+
+### Key Takeaways
+
+Classification models predict categories rather than continuous values. Most classification algorithms produce probabilities that are converted into class labels using a decision threshold.
+
+Model performance should rarely be evaluated using Accuracy alone. Depending on the problem, Precision, Recall, F1-score, AUC-ROC, PR-AUC, and Balanced Accuracy may provide more meaningful measures of performance.
+
+The most appropriate evaluation metric depends upon the business context and the relative costs associated with false positives and false negatives. Consequently, selecting a suitable threshold and performance metric is often as important as selecting the model itself.
+
+Having established how machine learning models can predict categorical outcomes, the next section considers **regression**, where the objective is to predict continuous numerical values.
 
 ### Regression
 
@@ -462,12 +838,60 @@ VIF measures how much the variance of a regression coefficient has been inflated
 
 Interpretation guidelines are commonly:
 
-| VIF | Interpretation |
-|------|------|
-| 1 | No correlation |
-| 1 - 5 | Moderate correlation |
-| > 5 | Potentially problematic |
-| > 10 | Severe multicollinearity |
+```{r, echo = FALSE}
+#| label: VIF table
+tibble(
+  VIF = c(
+    "1",
+    "1 - 5",
+    "> 5",
+    "> 10"
+  ),
+  Interpretation = c(
+    "No correlation",
+    "Moderate correlation",
+    "Potentially problematic",
+    "Severe multicollinearity"
+  )
+) |>
+  gt() |>
+  tab_header(
+    title = md("**Variance Inflation Factor (VIF) Interpretation**")
+  ) |>
+  tab_style(
+    style = list(
+      cell_fill(color = "#E8F5E9"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_body(
+      columns = Interpretation,
+      rows = Interpretation == "No correlation"
+    )
+  ) |>
+  tab_style(
+    style = list(
+      cell_fill(color = "#FFF3E0"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_body(
+      columns = Interpretation,
+      rows = Interpretation == "Moderate correlation"
+    )
+  ) |>
+  tab_style(
+    style = list(
+      cell_fill(color = "#FDECEA"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_body(
+      columns = Interpretation,
+      rows = Interpretation %in% c(
+        "Potentially problematic",
+        "Severe multicollinearity"
+      )
+    )
+  )
+```
 
 VIF should be interpreted alongside domain knowledge, sample size and modelling objectives rather than used as a strict pass/fail threshold.
 
