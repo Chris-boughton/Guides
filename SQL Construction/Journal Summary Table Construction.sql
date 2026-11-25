@@ -10,7 +10,6 @@ CREATE TABLE general.journal_summaries (
 	early_time TIME WITHOUT TIME ZONE,
 	late_time TIME WITHOUT TIME ZONE,
 	weekend_day BOOLEAN,
-	outlier BOOLEAN,
     additional_data JSONB
 )
 PARTITION BY LIST (summary_year)
@@ -97,7 +96,6 @@ comment on column general.journal_summaries.i_f_tag is 'This tags whether the up
 comment on column general.journal_summaries.early_time is 'This is the earliest time recorded for any time-containing field in the summary.';
 comment on column general.journal_summaries.late_time is 'This is the latest time recorded for any time-containing field in the summary.';
 comment on column general.journal_summaries.weekend_day is 'This is a BOOLEAN column to indicate the day is a weekend or weekday. TRUE means weekend.';
-comment on column general.journal_summaries.outlier is 'This is a BOOLEAN column to indicate the absolute balance associated with this summary row is an outlier. TRUE means that the absolute value is outside the Q3 + (1.5 x IQR).';
 comment on column general.journal_summaries.additional_data is 'All additional columns that are non-essential to the fundamental processes are stored in JSON format. This will allow new columns to be created at any given moment without requiring the table to be altered or structural changes to the warehouse. This includes columns that may be important for the generation of journal scores or extra detail from the client but not fundamental to a departments performance in the app. This should ultimately mean that our table is flexible enough for the wide-array of data that we receive. Some added benefits of this method are that data in JSON can be indexed if required and are easy to edit/extract/manipulate in our application.';
 -- Create covering index to help speed up the data loading process within applications
 CREATE INDEX idx_general_journal_summary_org_year ON general.journal_summaries(organisation, gl_year) TABLESPACE gl_data_space;
