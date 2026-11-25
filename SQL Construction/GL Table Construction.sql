@@ -9,7 +9,7 @@ CREATE TABLE general.gl_data (
     code VARCHAR(40) NOT NULL,
     balance NUMERIC NOT NULL,
     posted_date TIMESTAMP NOT NULL,
-    i_f_tag VARCHAR(1) NOT NULL,
+    i_f_tag VARCHAR(1) NOT NULL CHECK (i_f_tag IN ('i', 'f')),
     additional_data JSONB
 )
 PARTITION BY LIST (gl_year)

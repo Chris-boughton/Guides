@@ -6,7 +6,7 @@ CREATE TABLE general.journal_summaries (
     journal_reference TEXT NOT NULL,
     balance NUMERIC NOT NULL,
     period INTEGER NOT NULL CHECK(period BETWEEN 1 AND 13),
-    i_f_tag VARCHAR(1) NOT NULL,
+    i_f_tag VARCHAR(1) NOT NULL CHECK(i_f_tag IN ('i', 'f')),
 	early_time TIME WITHOUT TIME ZONE,
 	late_time TIME WITHOUT TIME ZONE,
 	weekend_day BOOLEAN,
