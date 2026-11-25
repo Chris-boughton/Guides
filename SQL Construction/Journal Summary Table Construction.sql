@@ -5,7 +5,7 @@ CREATE TABLE general.journal_summaries (
     summary_year DATE NOT NULL,
     journal_reference TEXT NOT NULL,
     balance NUMERIC NOT NULL,
-    period INTEGER NOT NULL CHECK(period BETWEEN 1 AND 13),
+    period INTEGER NOT NULL CHECK(period BETWEEN 0 AND 13),
     i_f_tag VARCHAR(1) NOT NULL CHECK(i_f_tag IN ('i', 'f')),
 	early_time TIME WITHOUT TIME ZONE,
 	late_time TIME WITHOUT TIME ZONE,
@@ -91,7 +91,7 @@ comment on column general.journal_summaries.organisation is 'This is the organis
 comment on column general.journal_summaries.summary_year is 'This is the year that the row of this journal summary relates to.';
 comment on column general.journal_summaries.journal_reference is 'The matching reference between the summary and the GL files.';
 comment on column general.journal_summaries.balance is 'The balance associated with that particular row of the summary file.';
-comment on column general.journal_summaries.period is 'The period for this row of the journal summary. It must be an interger between 1 and 13.';
+comment on column general.journal_summaries.period is 'The period for this row of the journal summary. It must be an interger between 0 and 13.';
 comment on column general.journal_summaries.i_f_tag is 'This tags whether the upload was at interim or final.';
 comment on column general.journal_summaries.early_time is 'This is the earliest time recorded for any time-containing field in the summary.';
 comment on column general.journal_summaries.late_time is 'This is the latest time recorded for any time-containing field in the summary.';
